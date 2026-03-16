@@ -1,0 +1,41 @@
+function ConfirmDialog({
+  isOpen,
+  title,
+  message,
+  onConfirm,
+  onCancel,
+  loading,
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal">
+        <h3>{title}</h3>
+        <p>{message}</p>
+
+        <div className="modal-buttons">
+          <button
+            type="button"
+            className="secondary-btn"
+            onClick={onCancel}
+            disabled={loading}
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            className="delete-btn"
+            onClick={onConfirm}
+            disabled={loading}
+          >
+            {loading ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ConfirmDialog;
