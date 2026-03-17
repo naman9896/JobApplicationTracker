@@ -7,7 +7,7 @@ const API_BASE_URL =
 const api = axios.create({
   baseURL: API_BASE_URL,
 });
-
+console.log(API_BASE_URL);
 export const getApplications = async (params = {}) => {
   const response = await api.get("", { params });
   return response.data;
