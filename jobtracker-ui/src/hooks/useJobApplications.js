@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import {
   createApplication,
   deleteApplication,
   getApplications,
   updateApplication,
 } from "../services/jobApi";
-import toast from "react-hot-toast";
 
-function useJobApplications(onDataChanged) {
+function useJobApplications(isAuthenticated, onDataChanged) {
   const [applications, setApplications] = useState([]);
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
@@ -38,6 +38,8 @@ function useJobApplications(onDataChanged) {
   });
 
   const loadApplications = async () => {
+    if (!isAuthenticated) return;
+
     try {
       setApplicationsLoading(true);
       setApplicationsError("");
@@ -50,8 +52,8 @@ function useJobApplications(onDataChanged) {
         sortBy,
       });
 
-      setApplications(data.items);
-      setTotalPages(data.totalPages);
+      setApplications(data.items || []);
+      setTotalPages(data.totalPages || 1);
     } catch (error) {
       console.error("Error loading applications:", error);
       setApplicationsError("Failed to load job applications.");
@@ -62,8 +64,16 @@ function useJobApplications(onDataChanged) {
   };
 
   useEffect(() => {
-    loadApplications();
-  }, [status, search, sortBy, page]);
+    if (isAuthenticated) {
+      loadApplications();
+    } else {
+      setApplications([]);
+      setTotalPages(1);
+      setPage(1);
+      setEditingId(null);
+      setApplicationsError("");
+    }
+  }, [isAuthenticated, status, search, sortBy, page]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -131,9 +141,19 @@ function useJobApplications(onDataChanged) {
       }
     } catch (error) {
       console.error("Error saving application:", error);
-      console.error("Response:", error?.response?.data);
-      setApplicationsError("Failed to save application.");
-      toast.error("Failed to save application.");
+      console.error("Status:", error?.response?.status);
+      console.error("Response data:", error?.response?.data);
+
+      const backendMessage =
+        error?.response?.data?.title ||
+        error?.response?.data?.message ||
+        (Array.isArray(error?.response?.data?.errors)
+          ? error.response.data.errors.join(", ")
+          : null) ||
+        "Failed to save application.";
+
+      setApplicationsError(backendMessage);
+      toast.error(backendMessage);
     } finally {
       setFormSubmitting(false);
     }
@@ -222,6 +242,7 @@ function useJobApplications(onDataChanged) {
     cancelDelete,
     resetForm,
     setPage,
+    reloadApplications: loadApplications,
   };
 }
 

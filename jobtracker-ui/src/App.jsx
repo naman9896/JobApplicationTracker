@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { Toaster } from "react-hot-toast";
+import AuthForm from "./components/AuthForm";
 import ConfirmDialog from "./components/ConfirmDialog";
 import DashboardCharts from "./components/DashboardCharts";
 import Filters from "./components/Filters";
@@ -7,20 +9,26 @@ import JobList from "./components/JobList";
 import Pagination from "./components/Pagination";
 import StatsCards from "./components/StatsCards";
 import UpcomingInterviews from "./components/UpcomingInterviews";
+import useAuth from "./hooks/useAuth";
 import useJobApplications from "./hooks/useJobApplications";
 import useStats from "./hooks/useStats";
 import useUpcomingInterviews from "./hooks/useUpcomingInterviews";
 import "./index.css";
 
 function App() {
-  const { stats, statsLoading, statsError, loadStats } = useStats();
+  const [authMode, setAuthMode] = useState("login");
+  const { userEmail, authLoading, isAuthenticated, login, register, logout } =
+    useAuth();
+
+  const { stats, statsLoading, statsError, loadStats } =
+    useStats(isAuthenticated);
 
   const {
     upcomingInterviews,
     interviewsLoading,
     interviewsError,
     loadUpcomingInterviews,
-  } = useUpcomingInterviews();
+  } = useUpcomingInterviews(isAuthenticated);
 
   const refreshRelatedData = async () => {
     await loadStats();
@@ -52,12 +60,75 @@ function App() {
     cancelDelete,
     resetForm,
     setPage,
-  } = useJobApplications(refreshRelatedData);
+    reloadApplications,
+  } = useJobApplications(isAuthenticated, refreshRelatedData);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      reloadApplications();
+      loadStats();
+      loadUpcomingInterviews();
+    }
+  }, [isAuthenticated]);
+
+  const handleAuthSubmit = async (payload) => {
+    const success =
+      authMode === "login" ? await login(payload) : await register(payload);
+
+    if (success) {
+      await refreshRelatedData();
+      await reloadApplications();
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="container auth-page">
+        <Toaster position="top-center" />
+        <h1>Job Application Tracker</h1>
+        <p className="auth-subtitle">
+          Track applications, interviews, rejections, and offers in one place.
+        </p>
+
+        <AuthForm
+          mode={authMode}
+          onSubmit={handleAuthSubmit}
+          loading={authLoading}
+        />
+
+        <p className="auth-toggle">
+          {authMode === "login"
+            ? "Don't have an account?"
+            : "Already have an account?"}{" "}
+          <button
+            className="link-btn"
+            onClick={() =>
+              setAuthMode((prev) => (prev === "login" ? "register" : "login"))
+            }
+          >
+            {authMode === "login" ? "Register" : "Login"}
+          </button>
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="container">
       <Toaster position="top-center" />
-      <h1>Job Application Tracker</h1>
+
+      <div className="top-bar">
+        <div>
+          <h1>Job Application Tracker</h1>
+          <p className="welcome-text">Welcome, {userEmail}</p>
+        </div>
+
+        <div className="user-actions">
+          <button className="secondary-btn" onClick={logout}>
+            Logout
+          </button>
+        </div>
+      </div>
 
       <StatsCards stats={stats} loading={statsLoading} error={statsError} />
 

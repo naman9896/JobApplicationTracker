@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { getStats } from "../services/jobApi";
 
-function useStats() {
+function useStats(isAuthenticated) {
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState("");
 
   const loadStats = async () => {
+    if (!isAuthenticated) return;
+
     try {
       setStatsLoading(true);
       setStatsError("");
@@ -22,8 +24,10 @@ function useStats() {
   };
 
   useEffect(() => {
-    loadStats();
-  }, []);
+    if (isAuthenticated) {
+      loadStats();
+    }
+  }, [isAuthenticated]);
 
   return {
     stats,

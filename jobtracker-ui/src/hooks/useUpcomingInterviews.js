@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { getUpcomingInterviews } from "../services/jobApi";
 
-function useUpcomingInterviews() {
+function useUpcomingInterviews(isAuthenticated) {
   const [upcomingInterviews, setUpcomingInterviews] = useState([]);
   const [interviewsLoading, setInterviewsLoading] = useState(false);
   const [interviewsError, setInterviewsError] = useState("");
 
   const loadUpcomingInterviews = async () => {
+    if (!isAuthenticated) return;
+
     try {
       setInterviewsLoading(true);
       setInterviewsError("");
@@ -22,8 +24,10 @@ function useUpcomingInterviews() {
   };
 
   useEffect(() => {
-    loadUpcomingInterviews();
-  }, []);
+    if (isAuthenticated) {
+      loadUpcomingInterviews();
+    }
+  }, [isAuthenticated]);
 
   return {
     upcomingInterviews,
