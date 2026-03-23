@@ -23,5 +23,7 @@ namespace JobTracker.Api.Models
         public string? JobUrl { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public string UserId { get; set; } = string.Empty;
+        public ApplicationUser? User { get; set; }
     }
 }

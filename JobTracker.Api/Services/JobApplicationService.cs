@@ -17,13 +17,16 @@ namespace JobTracker.Api.Services
         }
 
         public async Task<PagedResultDto<JobApplication>> GetAllAsync(
+            string userId,
             string? status,
             string? search,
             string? sortBy,
             int page,
             int pageSize)
         {
-            var query = _context.JobApplications.AsQueryable();
+            var query = _context.JobApplications
+                .Where(j => j.UserId == userId)
+                .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(status) &&
                 Enum.TryParse<ApplicationStatus>(status, true, out var parsedStatus))
@@ -65,14 +68,17 @@ namespace JobTracker.Api.Services
             };
         }
 
-        public async Task<JobApplication?> GetByIdAsync(int id)
+        public async Task<JobApplication?> GetByIdAsync(int id, string userId)
         {
-            return await _context.JobApplications.FindAsync(id);
+            return await _context.JobApplications
+                .FirstOrDefaultAsync(j => j.Id == id && j.UserId == userId);
         }
 
-        public async Task<JobApplicationStatsDto> GetStatsAsync()
+        public async Task<JobApplicationStatsDto> GetStatsAsync(string userId)
         {
-            var applications = await _context.JobApplications.ToListAsync();
+            var applications = await _context.JobApplications
+                .Where(j => j.UserId == userId)
+                .ToListAsync();
 
             return new JobApplicationStatsDto
             {
@@ -84,17 +90,20 @@ namespace JobTracker.Api.Services
             };
         }
 
-        public async Task<IEnumerable<JobApplication>> GetUpcomingInterviewsAsync()
+        public async Task<IEnumerable<JobApplication>> GetUpcomingInterviewsAsync(string userId)
         {
             var today = DateTime.UtcNow.Date;
 
             return await _context.JobApplications
-                .Where(j => j.InterviewDate.HasValue && j.InterviewDate.Value.Date >= today)
+                .Where(j =>
+                    j.UserId == userId &&
+                    j.InterviewDate.HasValue &&
+                    j.InterviewDate.Value.Date >= today)
                 .OrderBy(j => j.InterviewDate)
                 .ToListAsync();
         }
 
-        public async Task<JobApplication> CreateAsync(CreateJobApplicationDto dto)
+        public async Task<JobApplication> CreateAsync(CreateJobApplicationDto dto, string userId)
         {
             var jobApplication = new JobApplication
             {
@@ -105,7 +114,8 @@ namespace JobTracker.Api.Services
                 InterviewDate = dto.InterviewDate,
                 Notes = dto.Notes,
                 Location = dto.Location,
-                JobUrl = dto.JobUrl
+                JobUrl = dto.JobUrl,
+                UserId = userId
             };
 
             _context.JobApplications.Add(jobApplication);
@@ -114,9 +124,10 @@ namespace JobTracker.Api.Services
             return jobApplication;
         }
 
-        public async Task<bool> UpdateAsync(int id, UpdateJobApplicationDto dto)
+        public async Task<bool> UpdateAsync(int id, UpdateJobApplicationDto dto, string userId)
         {
-            var existingApplication = await _context.JobApplications.FindAsync(id);
+            var existingApplication = await _context.JobApplications
+                .FirstOrDefaultAsync(j => j.Id == id && j.UserId == userId);
 
             if (existingApplication == null)
             {
@@ -136,9 +147,10 @@ namespace JobTracker.Api.Services
             return true;
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(int id, string userId)
         {
-            var application = await _context.JobApplications.FindAsync(id);
+            var application = await _context.JobApplications
+                .FirstOrDefaultAsync(j => j.Id == id && j.UserId == userId);
 
             if (application == null)
             {
